@@ -36,7 +36,7 @@
 // this constant.  This will NOT make printing slower!  The physical
 // print and feed mechanisms are the bottleneck, not the port speed.
 #define BAUDRATE                                                               \
-  19200 //!< How many bits per second the serial port should transfer
+  9600 //!< How many bits per second the serial port should transfer
 
 // ASCII codes used by some of the printer config commands:
 #define ASCII_TAB '\t' //!< Horizontal tab
@@ -112,6 +112,12 @@ void Adafruit_Thermal::setTimes(unsigned long p, unsigned long f) {
 
 void Adafruit_Thermal::writeBytes(uint8_t a) {
   timeoutWait();
+  #if DEBUG
+  Serial.print(a, HEX);
+      Serial.print("\t");
+
+  Serial.println(a);
+  #endif
   stream->write(a);
   timeoutSet(BYTE_TIME);
 }
@@ -120,6 +126,16 @@ void Adafruit_Thermal::writeBytes(uint8_t a, uint8_t b) {
   timeoutWait();
   stream->write(a);
   stream->write(b);
+    #if DEBUG
+  Serial.print(a, HEX);
+  Serial.print(" ");
+  Serial.print(b, HEX);
+    Serial.print("\t");
+
+  Serial.print(a);
+  Serial.print(" ");
+  Serial.println(b);
+  #endif
   timeoutSet(2 * BYTE_TIME);
 }
 
@@ -128,6 +144,22 @@ void Adafruit_Thermal::writeBytes(uint8_t a, uint8_t b, uint8_t c) {
   stream->write(a);
   stream->write(b);
   stream->write(c);
+        #if DEBUG
+  Serial.print(a, HEX);
+  Serial.print(" ");
+  Serial.print(b, HEX);
+  Serial.print(" ");
+  Serial.print(c, HEX);
+
+      Serial.print("\t");
+  Serial.print(a);
+  Serial.print(" ");
+  Serial.print(b);
+  Serial.print(" ");
+  Serial.println(c);
+
+  #endif
+
   timeoutSet(3 * BYTE_TIME);
 }
 
@@ -137,6 +169,26 @@ void Adafruit_Thermal::writeBytes(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
   stream->write(b);
   stream->write(c);
   stream->write(d);
+      #if DEBUG
+  Serial.print(a, HEX);
+  Serial.print(" ");
+  Serial.print(b, HEX);
+  Serial.print(" ");
+  Serial.print(c, HEX);
+  Serial.print(" ");
+  Serial.print(d, HEX);
+
+
+      Serial.print("\t");
+  Serial.print(a);
+    Serial.print(" ");
+  Serial.print(b);
+  Serial.print(" ");
+  Serial.print(c);
+  Serial.print(" ");
+  Serial.println(d);
+
+  #endif
   timeoutSet(4 * BYTE_TIME);
 }
 
@@ -147,6 +199,11 @@ size_t Adafruit_Thermal::write(uint8_t c) {
   if (c != 13) { // Strip carriage returns
     timeoutWait();
     stream->write(c);
+
+    #if DEBUG
+    Serial.println(c, HEX);
+    #endif
+
     unsigned long d = BYTE_TIME;
     if ((c == '\n') || (column == maxColumn)) { // If newline or wrap
       d += (prevByte == '\n') ? ((charHeight + lineSpacing) * dotFeedTime)
@@ -221,7 +278,7 @@ void Adafruit_Thermal::setDefault() {
   setBarcodeHeight(50);
   setSize('s');
   setCharset();
-  setCodePage();
+  setCodePage(23);
 }
 
 void Adafruit_Thermal::test() {
@@ -511,29 +568,57 @@ void Adafruit_Thermal::printBitmap(int w, int h, const uint8_t *bitmap,
       chunkHeightLimit = 1;
   }
 
+    writeBytes(ASCII_ESC, '*'); // Set print mode
+
+
   for (i = rowStart = 0; rowStart < h; rowStart += chunkHeightLimit) {
     // Issue up to chunkHeightLimit rows at a time:
     chunkHeight = h - rowStart;
     if (chunkHeight > chunkHeightLimit)
       chunkHeight = chunkHeightLimit;
 
-    writeBytes(ASCII_DC2, '*', chunkHeight, rowBytesClipped);
+    if (firmware == 270) {
+      writeBytes(ASCII_GS, '*', chunkHeight, rowBytesClipped);
+    } else {
+        writeBytes(ASCII_DC2, '*', chunkHeight, rowBytesClipped);
+    }
+
+        #if DEBUG
+        Serial.println("writing images bytes...");
+        #endif
 
     for (y = 0; y < chunkHeight; y++) {
       for (x = 0; x < rowBytesClipped; x++, i++) {
         timeoutWait();
         stream->write(fromProgMem ? pgm_read_byte(bitmap + i) : *(bitmap + i));
+
+        #if DEBUG
+        Serial.print(" ");
+        Serial.print(fromProgMem ? pgm_read_byte(bitmap + i) : *(bitmap + i), HEX);
+        #endif
+
       }
+              #if DEBUG
+
+      Serial.println();
+        #endif
+
       i += rowBytes - rowBytesClipped;
     }
     timeoutSet(chunkHeight * dotPrintTime);
   }
+          #if DEBUG
+          Serial.println("printing done...");
+        #endif
+
   prevByte = '\n';
 }
 
 void Adafruit_Thermal::printBitmap(int w, int h, Stream *fromStream) {
   int rowBytes, rowBytesClipped, rowStart, chunkHeight, chunkHeightLimit, x, y,
       i, c;
+
+    writeBytes(ASCII_ESC, '*'); // Set print mode
 
   rowBytes = (w + 7) / 8; // Round up to next byte boundary
   rowBytesClipped = (rowBytes >= 48) ? 48 : rowBytes; // 384 pixels max width
@@ -555,13 +640,24 @@ void Adafruit_Thermal::printBitmap(int w, int h, Stream *fromStream) {
     if (chunkHeight > chunkHeightLimit)
       chunkHeight = chunkHeightLimit;
 
-    writeBytes(ASCII_DC2, '*', chunkHeight, rowBytesClipped);
+
+   if (firmware == 270) {
+      writeBytes(ASCII_GS, '*', chunkHeight, rowBytesClipped);
+    } else {
+        writeBytes(ASCII_DC2, '*', chunkHeight, rowBytesClipped);
+    }
+
+
+      #if DEBUG
+      Serial.println("writing images bytes...");
+      #endif
 
     for (y = 0; y < chunkHeight; y++) {
       for (x = 0; x < rowBytesClipped; x++) {
         while ((c = fromStream->read()) < 0)
           ;
         timeoutWait();
+
         stream->write((uint8_t)c);
       }
       for (i = rowBytes - rowBytesClipped; i > 0; i--) {
@@ -670,7 +766,7 @@ void Adafruit_Thermal::setMaxChunkHeight(int val) { maxChunkHeight = val; }
 void Adafruit_Thermal::setCharset(uint8_t val) {
   if (val > 15)
     val = 15;
-  writeBytes(ASCII_ESC, 'R', val);
+  writeBytes(ASCII_ESC, '%', val);
 }
 
 // Selects alt symbols for 'upper' ASCII values 0x80-0xFF

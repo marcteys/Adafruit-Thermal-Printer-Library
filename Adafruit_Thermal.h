@@ -7,6 +7,8 @@
 
 #include "Arduino.h"
 
+#define DEBUG 1
+
 // Internal character sets used with ESC R n
 #define CHARSET_USA 0           //!< American character set
 #define CHARSET_FRANCE 1        //!< French character set
@@ -113,7 +115,7 @@ public:
     /*!
      * @param version firmware version as integer, e.g. 268 = 2.68 firmware
      */
-    begin(uint16_t version=268),
+    begin(uint16_t version=0),
     /*!
      * @brief Disables bold text
      */
