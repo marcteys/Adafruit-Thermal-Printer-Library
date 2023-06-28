@@ -200,6 +200,14 @@ public:
      */
     printBitmap(Stream *fromStream),
     /*!
+     * @brief Prints a bitmap using the GS (old) command
+     * @param w Width of the image in pixels
+     * @param h Height of the image in pixels
+     * @param bitmap Bitmap data, from a file.
+     * @param fromProgMem
+     */
+     printRasterBitmap(int w, int h, const uint8_t *bitmap, bool fromProgMem=true),
+    /*!
      * @brief Sets text to normal mode
      */ 
     normal(),

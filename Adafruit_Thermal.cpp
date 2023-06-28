@@ -587,6 +587,26 @@ void Adafruit_Thermal::printBitmap(Stream *fromStream) {
   printBitmap(width, height, fromStream);
 }
 
+//  Print command using the old method
+void Adafruit_Thermal::printRasterBitmap(int w, int h, const uint8_t *bitmap,
+                                   bool fromProgMem) {
+  int rowBytes, x, y, i;
+
+  rowBytes = (w + 7) / 8; // Round up to next byte boundary
+
+  writeBytes(ASCII_GS, 'v', '0', 0);
+  writeBytes(rowBytes % 256, rowBytes / 256, h % 256, h / 256);
+
+  i = 0;
+  for(y=0; y < h; y++) {
+    for(x=0; x < rowBytes; x++, i++) {
+      writeBytes(fromProgMem ? pgm_read_byte(bitmap + i) : *(bitmap+i));
+    }
+  }
+  timeoutSet(h * dotPrintTime);
+  prevByte = '\n';
+}
+
 // Take the printer offline. Print commands sent after this will be
 // ignored until 'online' is called.
 void Adafruit_Thermal::offline() { writeBytes(ASCII_ESC, '=', 0); }
