@@ -7,8 +7,6 @@
 
 #include "Arduino.h"
 
-#define DEBUG 1
-
 // Internal character sets used with ESC R n
 #define CHARSET_USA 0           //!< American character set
 #define CHARSET_FRANCE 1        //!< French character set
@@ -115,7 +113,7 @@ public:
     /*!
      * @param version firmware version as integer, e.g. 268 = 2.68 firmware
      */
-    begin(uint16_t version=0),
+    begin(uint16_t version=268),
     /*!
      * @brief Disables bold text
      */
@@ -201,6 +199,14 @@ public:
      * @param fromStream Stream to get bitmap data from
      */
     printBitmap(Stream *fromStream),
+    /*!
+     * @brief Prints a bitmap using the GS (old) command
+     * @param w Width of the image in pixels
+     * @param h Height of the image in pixels
+     * @param bitmap Bitmap data, from a file.
+     * @param fromProgMem
+     */
+     printRasterBitmap(int w, int h, const uint8_t *bitmap, bool fromProgMem=true),
     /*!
      * @brief Sets text to normal mode
      */ 
